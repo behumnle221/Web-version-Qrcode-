@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { vendeurService } from '../../api/vendeurService';
@@ -237,20 +238,132 @@ const STATUS_MAP = {
   FAILED:     { color: '#dc2626', bg: '#fef2f2', dot: '#dc2626', label: 'Échoué'    },
 };
 
-// Simple 7-day bar chart using SVG
-function SalesChart({ data }) {
-  const max = Math.max(...data.map(d => d.value), 1);
+function aggregateData(txs, retraits, timeframe) {
+  const now = new Date();
+  const dataMap = new Map();
+  let periods = [];
+  let formatter;
+  let getPeriodKey;
+
+  if (timeframe === 'Semaine') {
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(now);
+      d.setDate(d.getDate() - i);
+      periods.push(d);
+    }
+    formatter = (d) => d.toLocaleDateString('fr-FR', { weekday: 'short' }) + '.';
+    getPeriodKey = (d) => d.toISOString().split('T')[0];
+  } else if (timeframe === 'Mois') {
+    for (let i = 29; i >= 0; i--) {
+      const d = new Date(now);
+      d.setDate(d.getDate() - i);
+      periods.push(d);
+    }
+    formatter = (d) => d.toLocaleDateString('fr-FR', { day: '2-digit' });
+    getPeriodKey = (d) => d.toISOString().split('T')[0];
+  } else if (timeframe === 'Année') {
+    for (let i = 11; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      periods.push(d);
+    }
+    formatter = (d) => d.toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' });
+    getPeriodKey = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  }
+
+  periods.forEach(p => {
+    dataMap.set(getPeriodKey(p), {
+      name: formatter(p),
+      Collections: 0,
+      Retraits: 0,
+      sortKey: p.getTime()
+    });
+  });
+
+  txs.forEach(tx => {
+    if (tx.statut === 'SUCCESS' || tx.statut === 'SUCCESSFUL') {
+      const d = new Date(tx.dateCreation);
+      const key = getPeriodKey(d);
+      if (dataMap.has(key)) {
+        dataMap.get(key).Collections += (tx.montant || 0);
+      }
+    }
+  });
+
+  retraits.forEach(rt => {
+    if (rt.statut === 'SUCCESS' || rt.statut === 'SUCCESSFUL' || rt.statut === 'PENDING') {
+      const d = new Date(rt.dateCreation);
+      const key = getPeriodKey(d);
+      if (dataMap.has(key)) {
+        dataMap.get(key).Retraits += (rt.montant || 0);
+      }
+    }
+  });
+
+  return Array.from(dataMap.values()).sort((a, b) => a.sortKey - b.sortKey);
+}
+
+function StatsChart({ transactions, retraits }) {
+  const [timeframe, setTimeframe] = useState('Mois');
+  const data = useMemo(() => aggregateData(transactions, retraits, timeframe), [transactions, retraits, timeframe]);
+
   return (
-    <div className="vh-chart-wrap">
-      {data.map((d, i) => (
-        <div key={i} className="vh-bar-col">
-          <div
-            className={`vh-bar${i === data.length - 1 ? ' highlight' : ''}`}
-            style={{ height: `${(d.value / max) * 130}px` }}
-          />
-          <span className="vh-bar-label">{d.label}</span>
+    <div style={{ width: '100%' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+        <h3 style={{ fontFamily: "'Sora', sans-serif", fontSize: '18px', fontWeight: '700', color: '#0f172a', margin: 0 }}>Statistiques</h3>
+        <div style={{ display: 'flex', background: '#e2e8f0', borderRadius: '20px', padding: '4px' }}>
+          {['Semaine', 'Mois', 'Année'].map((tf) => (
+            <button
+              key={tf}
+              onClick={() => setTimeframe(tf)}
+              style={{
+                padding: '6px 16px',
+                fontSize: '13px',
+                fontWeight: '600',
+                borderRadius: '16px',
+                border: 'none',
+                background: timeframe === tf ? '#4f46e5' : 'transparent',
+                color: timeframe === tf ? 'white' : '#64748b',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                boxShadow: timeframe === tf ? '0 2px 4px rgba(0,0,0,0.1)' : 'none'
+              }}
+            >
+              {tf}
+            </button>
+          ))}
         </div>
-      ))}
+      </div>
+      <div style={{ height: 300, width: '100%' }}>
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+            <XAxis 
+              dataKey="name" 
+              axisLine={true} 
+              tickLine={false} 
+              tick={{ fontSize: 12, fill: '#64748b' }} 
+              dy={10} 
+              angle={timeframe === 'Mois' || timeframe === 'Année' ? -45 : 0} 
+              textAnchor={timeframe === 'Mois' || timeframe === 'Année' ? 'end' : 'middle'} 
+              height={60}
+            />
+            <YAxis 
+              axisLine={false} 
+              tickLine={false} 
+              tick={{ fontSize: 12, fill: '#64748b' }} 
+              tickFormatter={(value) => `${value} FCFA`}
+            />
+            <Tooltip 
+              formatter={(value) => new Intl.NumberFormat('fr-FR').format(value) + ' FCFA'}
+              cursor={{fill: '#f1f5f9'}}
+              contentStyle={{borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'}}
+            />
+            <Legend verticalAlign="top" height={36} iconType="rect" wrapperStyle={{paddingBottom: '20px'}} />
+            <Bar dataKey="Collections" name="Collections" fill="#82ca9d" radius={[2, 2, 0, 0]} />
+            <Bar dataKey="Retraits" name="Retraits" fill="#ff8a8a" radius={[2, 2, 0, 0]} />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
     </div>
   );
 }
@@ -265,24 +378,29 @@ export default function VendeurHome() {
   const [refreshing, setRefreshing] = useState(false);
   const [stats, setStats] = useState({ total: 0, today: 0, count: 0 });
 
-  // Mock chart data (7 last days)
-  const [chartData] = useState(() => {
-    const days = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Auj'];
-    const vals = [12000, 45000, 28000, 67000, 34000, 89000, 23000];
-    return days.map((label, i) => ({ label, value: vals[i] }));
-  });
+  const [allTx, setAllTx] = useState([]);
+  const [allRetraits, setAllRetraits] = useState([]);
 
   const loadAll = useCallback(async () => {
     try {
-      const [soldeRes, txRes] = await Promise.allSettled([
+      const [soldeRes, allTxRes, allRetraitsRes] = await Promise.allSettled([
         vendeurService.getSolde(),
-        vendeurService.getTransactions({ size: 5 }),
+        vendeurService.getTransactions({ size: 1000 }),
+        vendeurService.getRetraits({ size: 1000 })
       ]);
 
       if (soldeRes.status === 'fulfilled') setSolde(soldeRes.value);
-      if (txRes.status === 'fulfilled') {
-        const items = txRes.value.items || [];
-        setRecentTx(items);
+      
+      let items = [];
+      if (allTxRes.status === 'fulfilled') {
+        items = allTxRes.value.items || [];
+        setAllTx(items);
+        setRecentTx(items.slice(0, 5));
+      }
+      
+      if (allRetraitsRes.status === 'fulfilled') {
+        setAllRetraits(allRetraitsRes.value.items || []);
+      }
         const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
         const todayTx = items.filter(tx =>
           tx.statut === 'SUCCESS' && new Date(tx.dateCreation) >= todayStart
@@ -368,11 +486,8 @@ export default function VendeurHome() {
 
         {/* Chart */}
         <div className="vh-card">
-          <div className="vh-section-title">
-            Ventes – 7 derniers jours
-            <TrendingUp size={16} style={{ color: '#2563eb' }} />
-          </div>
-          <SalesChart data={chartData} />
+          <StatsChart transactions={allTx} retraits={allRetraits} />
+          
           <div className="vh-stats-row">
             <div className="vh-stat-chip">
               <div className="vh-stat-chip-val"><span>{loading ? '...' : formatMoney(stats.today)}</span></div>
