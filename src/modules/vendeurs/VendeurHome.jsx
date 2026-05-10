@@ -410,9 +410,6 @@ export default function VendeurHome() {
           today: todayTx.reduce((s, t) => s + (t.montant || 0), 0),
           count: items.length,
         });
-      }
-
-
     } catch (err) {
       console.error(err);
     } finally {
