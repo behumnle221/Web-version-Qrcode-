@@ -310,11 +310,12 @@ export default function VendeurHome() {
   const handleRecalc = async () => {
     setRefreshing(true);
     try {
-      await vendeurService.recalculerSolde();
-      await loadAll();
-      toast.success('Solde recalculé avec succès');
+      // Récupère directement le solde stocké en base de données (pas de recalcul)
+      const soldeRes = await vendeurService.getSolde();
+      setSolde(soldeRes);
+      toast.success('Solde mis à jour');
     } catch {
-      toast.error('Erreur lors du recalcul');
+      toast.error('Erreur lors de la mise à jour du solde');
     } finally {
       setRefreshing(false);
     }
