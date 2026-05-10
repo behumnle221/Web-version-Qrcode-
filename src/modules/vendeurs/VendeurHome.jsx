@@ -273,7 +273,7 @@ function aggregateData(txs, retraits, timeframe) {
   periods.forEach(p => {
     dataMap.set(getPeriodKey(p), {
       name: formatter(p),
-      Collections: 0,
+      'Paiements reçus': 0,
       Retraits: 0,
       sortKey: p.getTime()
     });
@@ -284,7 +284,7 @@ function aggregateData(txs, retraits, timeframe) {
       const d = new Date(tx.dateCreation);
       const key = getPeriodKey(d);
       if (dataMap.has(key)) {
-        dataMap.get(key).Collections += (tx.montant || 0);
+        dataMap.get(key)['Paiements reçus'] += (tx.montant || 0);
       }
     }
   });
@@ -321,7 +321,7 @@ function StatsChart({ transactions, retraits }) {
                 fontWeight: '600',
                 borderRadius: '16px',
                 border: 'none',
-                background: timeframe === tf ? '#4f46e5' : 'transparent',
+                background: timeframe === tf ? '#2563eb' : 'transparent',
                 color: timeframe === tf ? 'white' : '#64748b',
                 cursor: 'pointer',
                 transition: 'all 0.2s',
@@ -359,8 +359,8 @@ function StatsChart({ transactions, retraits }) {
               contentStyle={{borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'}}
             />
             <Legend verticalAlign="top" height={36} iconType="rect" wrapperStyle={{paddingBottom: '20px'}} />
-            <Bar dataKey="Collections" name="Collections" fill="#82ca9d" radius={[2, 2, 0, 0]} />
-            <Bar dataKey="Retraits" name="Retraits" fill="#ff8a8a" radius={[2, 2, 0, 0]} />
+            <Bar dataKey="Paiements reçus" name="Paiements reçus" fill="#4ade80" radius={[2, 2, 0, 0]} />
+            <Bar dataKey="Retraits" name="Retraits" fill="#f87171" radius={[2, 2, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </div>
