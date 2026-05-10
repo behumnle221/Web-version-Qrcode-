@@ -259,7 +259,7 @@ function SalesChart({ data }) {
 export default function VendeurHome() {
   const { user } = useAuth();
   const [solde, setSolde] = useState(null);
-  const [soldeAangaraa, setSoldeAangaraa] = useState(null);
+
   const [recentTx, setRecentTx] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -294,10 +294,7 @@ export default function VendeurHome() {
         });
       }
 
-      // Load Aangaraa balance in background (non-blocking)
-      vendeurService.getSoldeAangaraa()
-        .then(d => setSoldeAangaraa(d))
-        .catch(() => {});
+
     } catch (err) {
       console.error(err);
     } finally {
@@ -351,26 +348,7 @@ export default function VendeurHome() {
           </div>
         </div>
 
-        {/* Solde opérateurs */}
-        <div className="vh-bal-card vh-bal-card-ops">
-          <div className="vh-bal-label"><Zap size={12} /> Soldes Opérateurs</div>
-          <div className="vh-ops-grid">
-            <div className="vh-op-chip">
-              <div className="vh-op-dot" style={{ background: '#FF6600' }} />
-              <div>
-                <div className="vh-op-name">Orange</div>
-                <div className="vh-op-val">{loading ? '...' : formatMoney(soldeAangaraa?.operators?.[0]?.balance ?? 0)}</div>
-              </div>
-            </div>
-            <div className="vh-op-chip">
-              <div className="vh-op-dot" style={{ background: '#FFCC00' }} />
-              <div>
-                <div className="vh-op-name">MTN MoMo</div>
-                <div className="vh-op-val">{loading ? '...' : formatMoney(soldeAangaraa?.operators?.[1]?.balance ?? 0)}</div>
-              </div>
-            </div>
-          </div>
-        </div>
+
       </div>
 
       {/* Quick action - Nouveau QR */}
