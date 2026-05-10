@@ -22,6 +22,8 @@ api.interceptors.request.use(
 );
 
 // Response interceptor — handle 401 & 403
+let isRedirectingToLogin = false; // Évite les redirections multiples
+
 api.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -29,11 +31,16 @@ api.interceptors.response.use(
     const url = error.config?.url ?? '';
 
     if (status === 401) {
-      // Token expiré ou invalide → déconnexion
-      localStorage.removeItem('payqr_token');
-      localStorage.removeItem('payqr_user');
-      if (window.location.pathname !== '/login') {
-        window.location.href = '/login';
+      // Token expiré ou invalide → déconnexion propre
+      if (!isRedirectingToLogin && window.location.pathname !== '/login') {
+        isRedirectingToLogin = true;
+        localStorage.removeItem('payqr_token');
+        localStorage.removeItem('payqr_user');
+        // Petit délai pour laisser un toast s'afficher si nécessaire
+        setTimeout(() => {
+          window.location.href = '/login';
+          isRedirectingToLogin = false;
+        }, 100);
       }
     } else if (status === 403) {
       // Bug connu backend : QRCodeController utilise hasAuthority('VENDEUR') sans ROLE_

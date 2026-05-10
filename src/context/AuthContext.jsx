@@ -1,4 +1,4 @@
-import { createContext, useState, useEffect, useCallback } from 'react';
+import { createContext, useState, useEffect, useCallback, useRef } from 'react';
 import { authService } from '../api/authService';
 
 export const AuthContext = createContext();
@@ -17,8 +17,16 @@ function decodeJwt(token) {
 function isTokenExpired(token) {
   const payload = decodeJwt(token);
   if (!payload || !payload.exp) return true;
-  // Add 30s buffer
-  return payload.exp * 1000 < Date.now() - 30000;
+  // Buffer de 30s : on considère le token expiré 30s AVANT sa vraie expiration
+  return payload.exp * 1000 < Date.now() + 30000;
+}
+
+// Retourne le nombre de ms restantes avant expiration (0 si déjà expiré)
+function getTokenRemainingMs(token) {
+  const payload = decodeJwt(token);
+  if (!payload || !payload.exp) return 0;
+  const remaining = payload.exp * 1000 - Date.now() - 30000; // 30s de marge
+  return Math.max(0, remaining);
 }
 
 // ── AuthProvider ──────────────────────────────────────────────────────────────
@@ -35,13 +43,32 @@ export function AuthProvider({ children }) {
     return stored;
   });
   const [loading, setLoading] = useState(true);
+  const logoutTimerRef = useRef(null);
+
+  // Démarre un timer pour déconnecter automatiquement avant l'expiration du token
+  const scheduleAutoLogout = useCallback((tkn) => {
+    if (logoutTimerRef.current) clearTimeout(logoutTimerRef.current);
+    const remaining = getTokenRemainingMs(tkn);
+    if (remaining <= 0) {
+      logout();
+      return;
+    }
+    logoutTimerRef.current = setTimeout(() => {
+      console.warn('[Auth] Token expiré — déconnexion automatique');
+      logout();
+    }, remaining);
+  }, []); // eslint-disable-line
 
   useEffect(() => {
     if (token) {
       loadUser();
+      scheduleAutoLogout(token);
     } else {
       setLoading(false);
     }
+    return () => {
+      if (logoutTimerRef.current) clearTimeout(logoutTimerRef.current);
+    };
   }, [token]); // eslint-disable-line
 
   const loadUser = useCallback(async () => {
@@ -84,6 +111,7 @@ export function AuthProvider({ children }) {
     localStorage.setItem('payqr_user', JSON.stringify(newUser));
     setToken(newToken);
     setUser(newUser);
+    scheduleAutoLogout(newToken);
     return newUser;
   };
 
