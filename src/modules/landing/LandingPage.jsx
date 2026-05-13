@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { useState, useEffect } from 'react';
+import HeroBanner from '../../components/common/HeroBanner';
 
 /* ─── DATA ──────────────────────────────────────────────────────────────── */
 const navLinks = [
@@ -435,133 +436,23 @@ export default function LandingPage() {
         )}
       </nav>
 
-      {/* ── HERO ── */}
-      <section style={{ background: '#fff' }}>
-        <div className="pq-hero" style={{
-          maxWidth: 1100, margin: '0 auto', padding: '100px 56px 90px',
-          display: 'grid', gridTemplateColumns: '1fr 420px', gap: 80, alignItems: 'center',
-        }}>
-          {/* Left */}
-          <div>
-            <div style={{
-              display: 'inline-flex', alignItems: 'center', gap: 8,
-              padding: '6px 14px', background: '#eff6ff', border: '1px solid #bfdbfe',
-              borderRadius: 20, fontSize: 12, fontWeight: 700, color: '#1d4ed8',
-              letterSpacing: '.04em', textTransform: 'uppercase', marginBottom: 28,
-              fontFamily: "'Inter', sans-serif",
-            }}>
-              <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#1d4ed8' }} />
-              Solution fintech · Cameroun
-            </div>
-
-            <h1 style={{ ...Heading, fontSize: 'clamp(32px, 3.8vw, 50px)', fontWeight: 800, lineHeight: 1.1, color: '#0f172a', marginBottom: 24, letterSpacing: '-.02em' }}>
-              Paiements par QR Code,{' '}
-              <span style={{ color: '#1d4ed8' }}>multi-opérateurs</span>{' '}
-              pour les commerçants
-            </h1>
-
-            <p style={{ ...S, fontSize: 17, color: '#475569', lineHeight: 1.8, marginBottom: 40, maxWidth: 500 }}>
-              PayQr unifie{' '}
-              <strong style={{ color: '#ea580c', fontWeight: 600 }}>Orange Money</strong> et{' '}
-              <strong style={{ color: '#d97706', fontWeight: 600 }}>MTN MoMo</strong>{' '}
-              dans un seul portefeuille virtuel. Générez des QR Codes dynamiques, encaissez
-              instantanément et gérez vos fonds depuis une interface unique.
-            </p>
-
-            <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', marginBottom: 48 }}>
-              <Link to="/register" className="btn-lg btn-lg-primary">
-                Créer un compte gratuit
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                  <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              </Link>
-              <a href="#flux" className="btn-lg btn-lg-outline">Comment ça marche</a>
-            </div>
-
-            {/* Compat badges */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-              <span style={{ ...S, fontSize: 12, color: '#94a3b8', fontWeight: 500 }}>Compatible avec :</span>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '7px 14px', borderRadius: 8, border: '1px solid #fed7aa', background: '#fff7ed' }}>
-                <div style={{ width: 22, height: 22, borderRadius: '50%', background: '#ea580c', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 10, fontWeight: 900, fontFamily: "'Sora', sans-serif" }}>O</div>
-                <span style={{ ...S, color: '#c2410c', fontSize: 13, fontWeight: 600 }}>Orange Money</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '7px 14px', borderRadius: 8, border: '1px solid #fde68a', background: '#fefce8' }}>
-                <div style={{ width: 22, height: 22, borderRadius: '50%', background: '#eab308', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#000', fontSize: 10, fontWeight: 900, fontFamily: "'Sora', sans-serif" }}>M</div>
-                <span style={{ ...S, color: '#92400e', fontSize: 13, fontWeight: 600 }}>MTN MoMo</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Right — Mockup */}
-          <div style={{ display: 'flex', justifyContent: 'center' }}>
-            <div style={{ position: 'relative', maxWidth: 380, width: '100%', animation: 'pqFloat 4s ease-in-out infinite' }}>
-              <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 22, padding: 28, boxShadow: '0 20px 60px rgba(15,23,42,.08)' }}>
-                {/* Header */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 }}>
-                  <div>
-                    <div style={{ ...S, fontSize: 12, color: '#94a3b8', marginBottom: 4, fontWeight: 500 }}>Montant à payer</div>
-                    <div style={{ ...Heading, fontSize: 28, fontWeight: 800, color: '#0f172a' }}>
-                      15 000 <span style={{ fontSize: 14, color: '#1d4ed8', fontWeight: 600 }}>FCFA</span>
-                    </div>
-                    <div style={{ ...S, fontSize: 12, color: '#94a3b8', marginTop: 3 }}>Boutique Chez Mama · Yaoundé</div>
-                  </div>
-                  <div style={{ width: 44, height: 44, borderRadius: 12, background: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
-                      <rect x="1" y="1" width="9" height="9" rx="2" stroke="#1d4ed8" strokeWidth="1.6"/>
-                      <rect x="12" y="1" width="9" height="9" rx="2" stroke="#1d4ed8" strokeWidth="1.6"/>
-                      <rect x="1" y="12" width="9" height="9" rx="2" stroke="#1d4ed8" strokeWidth="1.6"/>
-                      <rect x="3" y="3" width="5" height="5" fill="#1d4ed8"/>
-                      <rect x="14" y="3" width="5" height="5" fill="#1d4ed8"/>
-                      <rect x="3" y="14" width="5" height="5" fill="#1d4ed8"/>
-                    </svg>
-                  </div>
-                </div>
-                {/* QR visual */}
-                <div style={{ background: '#f8fafc', borderRadius: 14, padding: 20, marginBottom: 18, display: 'flex', justifyContent: 'center' }}>
-                  <svg width="130" height="130" viewBox="0 0 140 140">
-                    <rect x="8"  y="8"  width="38" height="38" rx="4" fill="#0f172a"/>
-                    <rect x="14" y="14" width="26" height="26" rx="2" fill="#fff"/>
-                    <rect x="18" y="18" width="18" height="18" rx="1" fill="#0f172a"/>
-                    <rect x="94" y="8"  width="38" height="38" rx="4" fill="#0f172a"/>
-                    <rect x="100" y="14" width="26" height="26" rx="2" fill="#fff"/>
-                    <rect x="104" y="18" width="18" height="18" rx="1" fill="#0f172a"/>
-                    <rect x="8"  y="94" width="38" height="38" rx="4" fill="#0f172a"/>
-                    <rect x="14" y="100" width="26" height="26" rx="2" fill="#fff"/>
-                    <rect x="18" y="104" width="18" height="18" rx="1" fill="#0f172a"/>
-                    {[
-                      [56,8],[68,8],[80,8],[56,20],[74,20],[62,26],[80,26],
-                      [8,56],[26,56],[38,56],[8,68],[20,68],[8,80],[32,80],
-                      [56,56],[74,56],[92,56],[110,56],[56,68],[80,68],[56,80],[68,80],[98,80],
-                      [56,92],[74,92],[86,92],[56,104],[68,104],[110,104],
-                      [56,116],[80,116],[98,116],[56,128],[74,128],[104,128],
-                    ].map(([x, y], i) => (
-                      <rect key={i} x={x} y={y} width="6" height="6" rx="1" fill="#0f172a"/>
-                    ))}
-                    <line x1="8" y1="70" x2="132" y2="70" stroke="#1d4ed8" strokeWidth="1.5" strokeDasharray="5 3" opacity="0.4"/>
-                  </svg>
-                </div>
-                {/* Success */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 11 }}>
-                  <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#16a34a', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: '#fff', fontSize: 13, fontWeight: 800, fontFamily: "'Sora', sans-serif" }}>✓</div>
-                  <div>
-                    <div style={{ ...Heading, fontSize: 13, fontWeight: 700, color: '#15803d' }}>QR Code sécurisé</div>
-                    <div style={{ ...S, fontSize: 11, color: '#4b5563', marginTop: 1 }}>Usage unique · Expire après paiement</div>
-                  </div>
-                </div>
-              </div>
-              {/* Floating badges */}
-              <div style={{ position: 'absolute', top: -14, right: -14, background: '#fff', border: '1px solid #e2e8f0', borderRadius: 11, padding: '8px 14px', boxShadow: '0 4px 16px rgba(0,0,0,.07)', animation: 'pqFloat 3.5s ease-in-out infinite .4s' }}>
-                <div style={{ ...S, fontSize: 11, color: '#64748b' }}>Transaction</div>
-                <div style={{ ...Heading, fontSize: 13, fontWeight: 700, color: '#16a34a', marginTop: 1 }}>✓ Succès</div>
-              </div>
-              <div style={{ position: 'absolute', bottom: -14, left: -14, background: '#fff', border: '1px solid #e2e8f0', borderRadius: 11, padding: '8px 14px', boxShadow: '0 4px 16px rgba(0,0,0,.07)', animation: 'pqFloat 4s ease-in-out infinite .9s' }}>
-                <div style={{ ...S, fontSize: 11, color: '#64748b' }}>Solde vendeur</div>
-                <div style={{ ...Heading, fontSize: 13, fontWeight: 700, color: '#ea580c', marginTop: 1 }}>+ 15 000 FCFA</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+      {/* ── HERO BANNER CAROUSEL ── */}
+      <HeroBanner
+        slides={[
+          {
+            image: '/images/banner.png',
+            bgPosition: 'center center',
+            tint: 'linear-gradient(to right, rgba(102, 115, 232, 0.68) 0%, rgba(80,20,80,.48) 55%, rgba(15,10,40,.22) 100%)',
+            accentColor: '#8cb2f0ff',
+          },
+          {
+            image: '/images/banner2.png',
+            bgPosition: 'center 60%',
+            tint: 'linear-gradient(to right, rgba(231, 232, 235, 0.86) 0%, rgba(37,99,235,.52) 55%, rgba(15,23,42,.22) 100%)',
+            accentColor: '#525a67ff',
+          },
+        ]}
+      />
 
       {/* ── STATS ── */}
       <section style={{ background: '#0f172a', padding: '52px 56px' }} className="pq-stats">
