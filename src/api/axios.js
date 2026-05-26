@@ -9,7 +9,7 @@ const api = axios.create({
   },
 });
 
-// Request interceptor — inject JWT
+// ── Request interceptor — inject JWT ─────────────────────────────────────────
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('payqr_token');
@@ -21,33 +21,44 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Response interceptor — handle 401 & 403
-let isRedirectingToLogin = false; // Évite les redirections multiples
+// ── Response interceptor — handle 401 & network errors ───────────────────────
+let isRedirectingToLogin = false;
 
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error) => {
     const status = error.response?.status;
     const url = error.config?.url ?? '';
 
+    // 401 : token invalide ou expiré → déconnexion
     if (status === 401) {
-      // Token expiré ou invalide → déconnexion propre
       if (!isRedirectingToLogin && window.location.pathname !== '/login') {
         isRedirectingToLogin = true;
         localStorage.removeItem('payqr_token');
         localStorage.removeItem('payqr_user');
-        // Petit délai pour laisser un toast s'afficher si nécessaire
         setTimeout(() => {
           window.location.href = '/login';
           isRedirectingToLogin = false;
-        }, 100);
+        }, 500);
       }
-    } else if (status === 403) {
-      // Bug connu backend : QRCodeController utilise hasAuthority('VENDEUR') sans ROLE_
-      // Ne pas rediriger, laisser le composant gérer l'erreur
-      console.warn(`[API 403] Accès refusé sur ${url}. Vérifiez les autorités côté backend.`);
-      error.isForbidden = true;
+      return Promise.reject(error);
     }
+
+    // 403 : accès refusé (ne pas rediriger vers login)
+    if (status === 403) {
+      console.warn(`[API 403] Accès refusé sur ${url}.`);
+      error.isForbidden = true;
+      return Promise.reject(error);
+    }
+
+    // 5xx ou erreur réseau : NE PAS déconnecter, laisser le composant gérer
+    // Le serveur Render peut prendre du temps à se réveiller
+    if (!status || status >= 500) {
+      console.warn(`[API] Erreur serveur ou réseau (${status ?? 'timeout'}) sur ${url}. Le serveur est peut-être en cours de démarrage.`);
+      error.isServerError = true;
+      return Promise.reject(error);
+    }
+
     return Promise.reject(error);
   }
 );

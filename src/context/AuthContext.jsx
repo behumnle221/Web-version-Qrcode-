@@ -1,5 +1,6 @@
 import { createContext, useState, useEffect, useCallback, useRef } from 'react';
 import { authService } from '../api/authService';
+import api from '../api/axios';
 
 export const AuthContext = createContext();
 
@@ -58,6 +59,32 @@ export function AuthProvider({ children }) {
     return false;
   });
   const logoutTimerRef = useRef(null);
+  const keepAliveRef   = useRef(null);
+
+  // Ping le serveur toutes les 4 minutes pour éviter :
+  // 1. La mise en veille du serveur Render (free tier)
+  // 2. La fermeture des connexions MySQL d'Aiven après 8 min d'inactivité
+  const startKeepAlive = useCallback(() => {
+    if (keepAliveRef.current) clearInterval(keepAliveRef.current);
+    keepAliveRef.current = setInterval(async () => {
+      const tkn = localStorage.getItem('payqr_token');
+      if (!tkn) { clearInterval(keepAliveRef.current); return; }
+      try {
+        await api.get('/api/auth/me');
+        console.debug('[KeepAlive] Ping serveur OK');
+      } catch (err) {
+        // Ignorer les erreurs réseau (serveur en cours de démarrage)
+        console.debug('[KeepAlive] Ping ignoré (serveur occupé)');
+      }
+    }, 4 * 60 * 1000); // toutes les 4 minutes
+  }, []);
+
+  const stopKeepAlive = useCallback(() => {
+    if (keepAliveRef.current) {
+      clearInterval(keepAliveRef.current);
+      keepAliveRef.current = null;
+    }
+  }, []);
 
   // Démarre un timer pour déconnecter automatiquement avant l'expiration du token
   const scheduleAutoLogout = useCallback((tkn) => {
@@ -77,11 +104,14 @@ export function AuthProvider({ children }) {
     if (token) {
       loadUser();
       scheduleAutoLogout(token);
+      startKeepAlive();
     } else {
       setLoading(false);
+      stopKeepAlive();
     }
     return () => {
       if (logoutTimerRef.current) clearTimeout(logoutTimerRef.current);
+      stopKeepAlive();
     };
   }, [token]); // eslint-disable-line
 
@@ -134,6 +164,7 @@ export function AuthProvider({ children }) {
     localStorage.removeItem('payqr_user');
     setToken(null);
     setUser(null);
+    stopKeepAlive();
   };
 
   const isAuthenticated = !!token && !!user && !isTokenExpired(token);
