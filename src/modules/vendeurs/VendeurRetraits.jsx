@@ -1,9 +1,9 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { vendeurService } from '../../api/vendeurService';
 import toast from 'react-hot-toast';
 import {
   ArrowDownToLine, CheckCircle2, Clock, XCircle,
-  RefreshCw, UserCheck, AlertCircle, ChevronLeft, ChevronRight
+  RefreshCw, UserCheck, AlertCircle, ChevronLeft, ChevronRight, Loader2
 } from 'lucide-react';
 
 /* ── CSS ─────────────────────────────────────────────────────────────────── */
@@ -163,6 +163,75 @@ const CSS = `
   .vr-sync-btn:hover { background: #e2e8f0; }
 
   .vr-empty { text-align: center; padding: 2rem; color: #94a3b8; font-size: 14px; }
+
+  /* ── TRACKER ── */
+  .vr-tracker {
+    border-radius:20px; border:1px solid #e2e8f0; overflow:hidden;
+    background: #fff; animation:vr-in .4s ease-out;
+  }
+  .dark .vr-tracker { background: #0f172a; border-color:#1e293b; }
+
+  .vr-tracker-header {
+    padding:1.5rem;
+    background:linear-gradient(135deg,#1e3a8a,#2563eb);
+    color:#fff;text-align:center;
+  }
+  .vr-tracker-amount {
+    font-family:'Sora',sans-serif;font-size:32px;font-weight:800;margin-bottom:4px;
+  }
+  .vr-tracker-sub { font-size:13px;opacity:.8; }
+
+  .vr-steps { padding:1.5rem; }
+  .vr-step {
+    display:flex;align-items:flex-start;gap:14px;padding:.75rem 0;
+    border-bottom:1px solid #f1f5f9;position:relative;
+  }
+  .dark .vr-step { border-color:#1e293b; }
+  .vr-step:last-child { border-bottom:none; }
+
+  .vr-step-line {
+    position:absolute;left:17px;top:42px;bottom:-12px;
+    width:2px;background:#e2e8f0;
+  }
+  .dark .vr-step-line { background:#1e293b; }
+  .vr-step:last-child .vr-step-line { display:none; }
+
+  .vr-step-icon {
+    width:36px;height:36px;border-radius:50%;flex-shrink:0;
+    display:flex;align-items:center;justify-content:center;
+    border:2px solid #e2e8f0;background:#f8fafc;
+    position:relative;z-index:1;transition:all .3s;
+  }
+  .vr-step-icon.done { background:#f0fdf4;border-color:#86efac; }
+  .vr-step-icon.active { background:#eff6ff;border-color:#93c5fd; animation:vr-pulse 1.5s infinite; }
+  .vr-step-icon.fail { background:#fef2f2;border-color:#fca5a5; }
+
+  @keyframes vr-pulse {
+    0%,100% { box-shadow:0 0 0 0 rgba(37,99,235,.3); }
+    50% { box-shadow:0 0 0 6px rgba(37,99,235,0); }
+  }
+
+  .vr-step-label { font-size:14px;font-weight:600;color:#0f172a;margin-bottom:3px; }
+  .dark .vr-step-label { color:#e2e8f0; }
+  .vr-step-desc { font-size:12px;color:#94a3b8; }
+  .vr-step-time { font-size:11px;color:#2563eb;margin-top:2px; }
+
+  .vr-status-badge {
+    display:inline-flex;align-items:center;gap:6px;
+    padding:.5rem 1.25rem;border-radius:20px;font-size:13px;font-weight:700;
+    margin: 1.5rem 1.5rem 0;
+  }
+  .vr-status-pending { background:#fffbeb;color:#d97706;border:1px solid #fde68a; }
+  .vr-status-success { background:#f0fdf4;color:#16a34a;border:1px solid #86efac; }
+  .vr-status-failed  { background:#fef2f2;color:#dc2626;border:1px solid #fca5a5; }
+
+  .vr-poll-info {
+    margin:0 1.5rem 1.5rem;padding:.75rem 1rem;border-radius:12px;
+    background:#f8fafc;border:1px solid #e2e8f0;
+    display:flex;align-items:center;justify-content:space-between;
+    font-size:12px;color:#64748b;
+  }
+  .dark .vr-poll-info { background:#1e293b;border-color:#334155; }
 `;
 
 function formatMoney(v) {
@@ -180,6 +249,151 @@ const STATUS = {
   FAILED:     { label: 'Échoué',     cls: 'failed',  Icon: XCircle,      color: '#dc2626', bg: '#fef2f2' },
 };
 
+/* ── Étapes du retrait ── */
+const WITHDRAWAL_STEPS = [
+  { key: 'init',    label: 'Demande enregistrée',    desc: 'Votre demande de retrait a été reçue' },
+  { key: 'op',      label: 'Traitement opérateur',   desc: 'L\'opérateur Mobile Money traite l\'envoi' },
+  { key: 'transfer',label: 'Transfert en cours',     desc: 'Fonds en cours d\'envoi vers votre numéro' },
+  { key: 'done',    label: 'Fonds reçus',            desc: 'Le retrait est terminé avec succès' },
+];
+
+function getWithdrawalStepState(stepKey, status, pollCount) {
+  if (status === 'SUCCESS') return 'done';
+  if (status === 'FAILED') {
+    if (stepKey === 'init') return 'done';
+    if (stepKey === 'op') return 'fail';
+    return 'idle';
+  }
+  // PENDING
+  if (stepKey === 'init') return 'done';
+  if (stepKey === 'op') return pollCount < 6 ? 'active' : 'done';
+  if (stepKey === 'transfer') return pollCount >= 6 ? 'active' : 'idle';
+  return 'idle';
+}
+
+function WithdrawalTracker({ retrait, onReset }) {
+  const [status, setStatus] = useState(retrait.statut || 'PENDING');
+  const [pollCount, setPollCount] = useState(0);
+  const [lastPoll, setLastPoll] = useState(new Date());
+  const [nextIn, setNextIn] = useState(5);
+  
+  const intervalRef = useRef(null);
+  const countdownRef = useRef(null);
+  const pollsRef = useRef(0);
+
+  const poll = async () => {
+    if (!retrait.referenceId && !retrait.transactionId && !retrait.id) return;
+    try {
+      const txId = retrait.referenceId || retrait.transactionId || retrait.id;
+      const res = await vendeurService.getRetraitStatut(txId, retrait.operateur);
+      const data = res?.data || res;
+      
+      const rawStatus = String(data?.status || data?.statut || '').toUpperCase();
+      const isOk = rawStatus === 'SUCCESS' || rawStatus === 'SUCCESSFUL' || rawStatus === 'COMPLETED' || data?.success === true;
+      const isErr = rawStatus === 'FAILED' || rawStatus === 'ERROR' || rawStatus === 'REJECTED';
+      
+      const newStatus = isOk ? 'SUCCESS' : isErr ? 'FAILED' : 'PENDING';
+      
+      setStatus(newStatus);
+      setLastPoll(new Date());
+      pollsRef.current += 1;
+      setPollCount(pollsRef.current);
+
+      if (newStatus === 'SUCCESS' || newStatus === 'FAILED' || pollsRef.current >= 30) {
+        clearInterval(intervalRef.current);
+        clearInterval(countdownRef.current);
+        if (newStatus === 'SUCCESS') toast.success('Retrait confirmé par l\'opérateur !');
+        if (newStatus === 'FAILED') toast.error('Retrait échoué.');
+      }
+    } catch (err) {
+      console.error('❌ Erreur lors du polling retrait:', err);
+    }
+    setNextIn(5);
+  };
+
+  useEffect(() => {
+    poll();
+    intervalRef.current = setInterval(poll, 5000);
+    countdownRef.current = setInterval(() => {
+      setNextIn(n => (n > 1 ? n - 1 : 5));
+    }, 1000);
+    return () => {
+      clearInterval(intervalRef.current);
+      clearInterval(countdownRef.current);
+    };
+  }, [retrait.referenceId, retrait.transactionId, retrait.id]);
+
+  const isSuccess = status === 'SUCCESS';
+  const isFailed  = status === 'FAILED';
+  const isPending = !isSuccess && !isFailed;
+  const opLabel = retrait.operateur === 'Orange_Cameroon' ? 'Orange Money' : 'MTN MoMo';
+
+  return (
+    <div className="vr-tracker">
+      <div className="vr-tracker-header">
+        <div className="vr-tracker-amount">{formatMoney(retrait.montant)}</div>
+        <div className="vr-tracker-sub">Retrait {opLabel} · {retrait.telephone}</div>
+      </div>
+
+      <div className={`vr-status-badge ${isSuccess ? 'vr-status-success' : isFailed ? 'vr-status-failed' : 'vr-status-pending'}`}>
+        {isPending && <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> En cours de traitement…</>}
+        {isSuccess && <><CheckCircle2 size={14} /> Retrait réussi !</>}
+        {isFailed  && <><XCircle size={14} /> Retrait échoué</>}
+      </div>
+
+      <div className="vr-steps">
+        {WITHDRAWAL_STEPS.map((step, idx) => {
+          const state = isSuccess ? 'done'
+                      : isFailed && step.key !== 'init' && step.key !== 'op' ? 'idle'
+                      : isFailed && step.key === 'op' ? 'fail'
+                      : getWithdrawalStepState(step.key, status, pollCount);
+
+          return (
+            <div key={step.key} className="vr-step">
+              {idx < WITHDRAWAL_STEPS.length - 1 && <div className="vr-step-line" />}
+              <div className={`vr-step-icon ${state}`}>
+                {state === 'done'   && <CheckCircle2 size={16} color="#16a34a" />}
+                {state === 'active' && <Loader2 size={16} color="#2563eb" style={{ animation: 'spin 1s linear infinite' }} />}
+                {state === 'fail'   && <XCircle size={16} color="#dc2626" />}
+                {state === 'idle'   && <Clock size={16} color="#cbd5e1" />}
+              </div>
+              <div>
+                <div className="vr-step-label">{step.label}</div>
+                <div className="vr-step-desc">
+                  {state === 'fail' ? 'Refusé par l\'opérateur' : step.desc}
+                </div>
+                {state === 'done' && idx === 0 && (
+                  <div className="vr-step-time">✓ {new Date(lastPoll).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</div>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {isPending && (
+        <div className="vr-poll-info">
+          <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <RefreshCw size={12} /> Suivi temps réel
+          </span>
+          <span>Actualisation dans {nextIn}s</span>
+        </div>
+      )}
+
+      <div style={{ padding: '0 1.5rem 1.5rem', display:'flex', gap:'.75rem' }}>
+        <button className="vr-verify-btn" style={{ flex:1, height:44, border: 'none', background: '#f1f5f9' }} onClick={onReset}>
+          Nouveau retrait
+        </button>
+        {(isSuccess || isFailed) && (
+          <button className="vr-submit default" style={{ flex:1, height:44, boxShadow:'none' }} onClick={() => window.location.reload()}>
+            Terminer
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function VendeurRetraits() {
   const [operateur, setOperateur] = useState('Orange_Cameroon');
   const [montant, setMontant] = useState('');
@@ -188,6 +402,7 @@ export default function VendeurRetraits() {
   const [verifying, setVerifying] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [solde, setSolde] = useState(null);
+  const [initiatedRetrait, setInitiatedRetrait] = useState(null);
 
   const [retraits, setRetraits] = useState([]);
   const [page, setPage] = useState(0);
@@ -235,12 +450,21 @@ export default function VendeurRetraits() {
 
     setSubmitting(true);
     try {
-      await vendeurService.demanderRetrait({
+      const res = await vendeurService.demanderRetrait({
         montant: parseFloat(montant),
         operateur,
         telephone,
       });
+      const data = res?.data || res;
       toast.success('Retrait demandé avec succès !');
+      
+      setInitiatedRetrait({
+        ...data,
+        montant: parseFloat(montant),
+        operateur,
+        telephone
+      });
+      
       setMontant('');
       setTelephone('');
       setVerifyResult(null);
@@ -270,93 +494,100 @@ export default function VendeurRetraits() {
       <div className="vr-grid">
         {/* ── FORM ── */}
         <div>
-          <div className="vr-card">
-            <div className="vr-card-title">
-              <ArrowDownToLine size={18} color="#2563eb" /> Demander un retrait
-            </div>
-
-            {/* Solde disponible */}
-            {solde !== null && (
-              <div className="vr-solde-chip">
-                <span className="vr-solde-label">Solde disponible</span>
-                <span className="vr-solde-val">{formatMoney(solde)}</span>
+          {initiatedRetrait ? (
+            <WithdrawalTracker 
+              retrait={initiatedRetrait} 
+              onReset={() => { setInitiatedRetrait(null); loadRetraits(0); loadSolde(); }} 
+            />
+          ) : (
+            <div className="vr-card">
+              <div className="vr-card-title">
+                <ArrowDownToLine size={18} color="#2563eb" /> Demander un retrait
               </div>
-            )}
 
-            {/* Operator selector */}
-            <div className="vr-ops">
-              <button
-                type="button"
-                className={`vr-op-btn${operateur === 'Orange_Cameroon' ? ' active-orange' : ''}`}
-                onClick={() => { setOperateur('Orange_Cameroon'); setVerifyResult(null); }}
-              >
-                <div className="vr-op-logo" style={{ background: '#FF6600' }}>O</div>
-                Orange Money
-              </button>
-              <button
-                type="button"
-                className={`vr-op-btn${operateur === 'MTN_Cameroon' ? ' active-mtn' : ''}`}
-                onClick={() => { setOperateur('MTN_Cameroon'); setVerifyResult(null); }}
-              >
-                <div className="vr-op-logo" style={{ background: '#FFCC00', color: '#000' }}>M</div>
-                MTN MoMo
-              </button>
-            </div>
+              {/* Solde disponible */}
+              {solde !== null && (
+                <div className="vr-solde-chip">
+                  <span className="vr-solde-label">Solde disponible</span>
+                  <span className="vr-solde-val">{formatMoney(solde)}</span>
+                </div>
+              )}
 
-            <form onSubmit={handleSubmit}>
-              {/* Phone */}
-              <div className="vr-field">
-                <label className="vr-label">Numéro de téléphone bénéficiaire</label>
-                <div className="vr-verify-row">
+              {/* Operator selector */}
+              <div className="vr-ops">
+                <button
+                  type="button"
+                  className={`vr-op-btn${operateur === 'Orange_Cameroon' ? ' active-orange' : ''}`}
+                  onClick={() => { setOperateur('Orange_Cameroon'); setVerifyResult(null); }}
+                >
+                  <div className="vr-op-logo" style={{ background: '#FF6600' }}>O</div>
+                  Orange Money
+                </button>
+                <button
+                  type="button"
+                  className={`vr-op-btn${operateur === 'MTN_Cameroon' ? ' active-mtn' : ''}`}
+                  onClick={() => { setOperateur('MTN_Cameroon'); setVerifyResult(null); }}
+                >
+                  <div className="vr-op-logo" style={{ background: '#FFCC00', color: '#000' }}>M</div>
+                  MTN MoMo
+                </button>
+              </div>
+
+              <form onSubmit={handleSubmit}>
+                {/* Phone */}
+                <div className="vr-field">
+                  <label className="vr-label">Numéro de téléphone bénéficiaire</label>
+                  <div className="vr-verify-row">
+                    <input
+                      className="vr-input"
+                      placeholder="657515280"
+                      value={telephone}
+                      onChange={e => { setTelephone(e.target.value); setVerifyResult(null); }}
+                    />
+                    <button
+                      type="button"
+                      className="vr-verify-btn"
+                      onClick={handleVerify}
+                      disabled={verifying || !telephone}
+                    >
+                      {verifying ? '…' : 'Vérifier'}
+                    </button>
+                  </div>
+                  {verifyResult && (
+                    <div className={`vr-verify-result ${verifyResult.ok ? 'vr-verify-ok' : 'vr-verify-err'}`}>
+                      {verifyResult.ok
+                        ? <><UserCheck size={14} /> Compte de : <strong>{verifyResult.name}</strong></>
+                        : <><AlertCircle size={14} /> {verifyResult.msg}</>
+                      }
+                    </div>
+                  )}
+                </div>
+
+                {/* Amount */}
+                <div className="vr-field">
+                  <label className="vr-label">Montant à retirer (XAF)</label>
                   <input
                     className="vr-input"
-                    placeholder="657515280"
-                    value={telephone}
-                    onChange={e => { setTelephone(e.target.value); setVerifyResult(null); }}
+                    type="number" min="10" placeholder="5000"
+                    value={montant}
+                    onChange={e => setMontant(e.target.value)}
+                    required
                   />
-                  <button
-                    type="button"
-                    className="vr-verify-btn"
-                    onClick={handleVerify}
-                    disabled={verifying || !telephone}
-                  >
-                    {verifying ? '…' : 'Vérifier'}
-                  </button>
                 </div>
-                {verifyResult && (
-                  <div className={`vr-verify-result ${verifyResult.ok ? 'vr-verify-ok' : 'vr-verify-err'}`}>
-                    {verifyResult.ok
-                      ? <><UserCheck size={14} /> Compte de : <strong>{verifyResult.name}</strong></>
-                      : <><AlertCircle size={14} /> {verifyResult.msg}</>
-                    }
-                  </div>
-                )}
-              </div>
 
-              {/* Amount */}
-              <div className="vr-field">
-                <label className="vr-label">Montant à retirer (XAF)</label>
-                <input
-                  className="vr-input"
-                  type="number" min="10" placeholder="5000"
-                  value={montant}
-                  onChange={e => setMontant(e.target.value)}
-                  required
-                />
-              </div>
-
-              <button
-                type="submit"
-                className={`vr-submit ${btnClass}`}
-                disabled={submitting}
-              >
-                {submitting
-                  ? <><div className="vr-spinner" /> Traitement…</>
-                  : <><ArrowDownToLine size={16} /> Retirer {montant ? formatMoney(parseFloat(montant)) : ''}</>
-                }
-              </button>
-            </form>
-          </div>
+                <button
+                  type="submit"
+                  className={`vr-submit ${btnClass}`}
+                  disabled={submitting}
+                >
+                  {submitting
+                    ? <><div className="vr-spinner" /> Traitement…</>
+                    : <><ArrowDownToLine size={16} /> Retirer {montant ? formatMoney(parseFloat(montant)) : ''}</>
+                  }
+                </button>
+              </form>
+            </div>
+          )}
         </div>
 
         {/* ── HISTORY ── */}

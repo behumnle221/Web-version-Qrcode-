@@ -463,12 +463,7 @@ export default function LoginPage() {
   const { login } = useAuth();
   const navigate  = useNavigate();
 
-  useEffect(() => {
-    const style = document.createElement('style');
-    style.textContent = globalCss;
-    document.head.appendChild(style);
-    return () => document.head.removeChild(style);
-  }, []);
+
 
   const validate = () => {
     const e = {};
@@ -507,6 +502,7 @@ export default function LoginPage() {
 
   return (
     <div className="lp-root">
+      <style>{globalCss}</style>
 
       {/* ── LEFT PANEL ── */}
       <aside className="lp-left">

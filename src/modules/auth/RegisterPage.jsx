@@ -438,12 +438,7 @@ export default function RegisterPage() {
   });
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const style = document.createElement('style');
-    style.textContent = globalCss;
-    document.head.appendChild(style);
-    return () => document.head.removeChild(style);
-  }, []);
+
 
   const update = (field) => (e) =>
     setForm(prev => ({ ...prev, [field]: e.target.value }));
@@ -495,6 +490,7 @@ export default function RegisterPage() {
 
   return (
     <div className="rp-container">
+      <style>{globalCss}</style>
       
       {/* Branding Side (Desktop) */}
       <div className="rp-sidebar">
@@ -512,45 +508,45 @@ export default function RegisterPage() {
           </Link>
         </div>
 
-        <div className="relative z-10 space-y-10 mt-12 mb-auto">
-          <h1 className="text-4xl xl:text-5xl font-black leading-[1.2] tracking-tight text-white">
+        <div className="relative z-10 mt-8 mb-auto">
+          <h1 className="mb-6 text-4xl xl:text-5xl font-black leading-[1.2] tracking-tight text-white">
             Rejoignez PayQr,<br />
             la plateforme <span className="text-primary-400">tout-en-un</span><br />
             pour vos paiements
           </h1>
-          <p className="text-base text-gray-400 leading-relaxed max-w-md">
+          <p className="mb-12 text-base text-gray-400 leading-relaxed max-w-md">
             Portefeuille virtuel, QR Codes dynamiques et gestion multi-opérateurs — tout dans une seule application.
           </p>
           
-          <div className="space-y-7 pt-12 border-t border-white/5">
-            <div className="flex items-center gap-5">
-              <div className="w-10 h-10 shrink-0 rounded-xl bg-blue-600/20 flex items-center justify-center border border-blue-500/30">
-                <ShieldCheck size={20} className="text-blue-400" />
+          <div className="flex flex-col gap-5">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 shrink-0 rounded-xl bg-blue-600/10 flex items-center justify-center border border-blue-500/20">
+                <ShieldCheck size={18} className="text-blue-400" />
               </div>
-              <p className="text-gray-300 font-medium text-lg">QR Codes à usage unique, sécurisés</p>
+              <p className="text-gray-300 font-medium text-[15px]">QR Codes à usage unique, sécurisés</p>
             </div>
-            <div className="flex items-center gap-5">
-              <div className="w-10 h-10 shrink-0 rounded-xl bg-orange-600/20 flex items-center justify-center border border-orange-500/30">
-                <Wallet size={20} className="text-orange-400" />
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 shrink-0 rounded-xl bg-orange-600/10 flex items-center justify-center border border-orange-500/20">
+                <Wallet size={18} className="text-orange-400" />
               </div>
-              <p className="text-gray-300 font-medium text-lg">Orange Money & MTN MoMo unifiés</p>
+              <p className="text-gray-300 font-medium text-[15px]">Orange Money & MTN MoMo unifiés</p>
             </div>
-            <div className="flex items-center gap-5">
-              <div className="w-10 h-10 shrink-0 rounded-xl bg-green-600/20 flex items-center justify-center border border-green-500/30">
-                <Clock size={20} className="text-green-400" />
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 shrink-0 rounded-xl bg-green-600/10 flex items-center justify-center border border-green-500/20">
+                <Clock size={18} className="text-green-400" />
               </div>
-              <p className="text-gray-300 font-medium text-lg">Historique et suivi en temps réel</p>
+              <p className="text-gray-300 font-medium text-[15px]">Historique et suivi en temps réel</p>
             </div>
-            <div className="flex items-center gap-5">
-              <div className="w-10 h-10 shrink-0 rounded-xl bg-indigo-600/20 flex items-center justify-center border border-indigo-500/30">
-                <Layers size={20} className="text-indigo-400" />
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 shrink-0 rounded-xl bg-indigo-600/10 flex items-center justify-center border border-indigo-500/20">
+                <Layers size={18} className="text-indigo-400" />
               </div>
-              <p className="text-gray-300 font-medium text-lg">Sécurisé par JWT multi-rôles</p>
+              <p className="text-gray-300 font-medium text-[15px]">Sécurisé par JWT multi-rôles</p>
             </div>
           </div>
         </div>
 
-        <div className="relative z-10 flex gap-4 pt-8">
+        <div className="relative z-10 flex gap-4 mt-8">
            <div className="flex items-center gap-2.5 bg-white/5 border border-white/10 px-4 py-2.5 rounded-xl backdrop-blur-sm">
              <div className="w-6 h-6 bg-[#FF6600] rounded-full flex items-center justify-center">
                 <div className="w-2 h-2 bg-white rounded-sm"></div>
