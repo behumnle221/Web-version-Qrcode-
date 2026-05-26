@@ -7,6 +7,7 @@ import {
   Receipt, Settings, Bell, LogOut, Store,
   ChevronRight, Menu, X
 } from 'lucide-react';
+import ThemeToggle from '../../components/common/ThemeToggle';
 
 /* ─── CSS ───────────────────────────────────────────────────────────────── */
 const CSS = `
@@ -448,6 +449,7 @@ export default function VendeurLayout() {
             <span className="vl-page-title">{pageTitle}</span>
           </div>
           <div className="vl-topbar-right">
+            <ThemeToggle />
             <button className="vl-notif-btn">
               <Bell size={18} />
               {unread > 0 && (

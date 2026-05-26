@@ -7,6 +7,7 @@ import {
   Receipt, Settings, Bell, LogOut,
   ChevronRight, Menu, X, Wallet, ScanLine
 } from 'lucide-react';
+import ThemeToggle from '../../components/common/ThemeToggle';
 
 /* ─── CSS ───────────────────────────────────────────────────────────────── */
 const CSS = `
@@ -441,6 +442,7 @@ export default function ClientLayout() {
             <span className="cl-page-title">{pageTitle}</span>
           </div>
           <div className="cl-topbar-right">
+            <ThemeToggle />
             <button className="cl-notif-btn">
               <Bell size={18} />
               {unread > 0 && (
