@@ -151,7 +151,7 @@ export default function DashboardLayout() {
               </div>
             </div>
             <div className="flex items-center gap-6">
-              <div className="hidden sm:block">
+              <div>
                 <ThemeToggle />
               </div>
               <button className="relative p-3 rounded-2xl bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors group">

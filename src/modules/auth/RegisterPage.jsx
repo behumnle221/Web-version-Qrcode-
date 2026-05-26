@@ -564,16 +564,8 @@ export default function RegisterPage() {
 
       {/* Main Content Side */}
       <div className="rp-main-side">
-        <header className="h-20 px-6 lg:px-12 flex items-center justify-between">
-          <Link to="/" className="lg:hidden flex items-center gap-2">
-            <div className="w-9 h-9 rounded-lg bg-primary-600 flex items-center justify-center">
-              <QrCode size={20} className="text-white" />
-            </div>
-            <span className="text-xl font-black italic dark:text-white">Pay<span className="text-primary-600 not-italic">Qr</span></span>
-          </Link>
-          <div className="ml-auto">
-            <ThemeToggle />
-          </div>
+        <header className="h-20 px-6 lg:px-12 flex items-center justify-end">
+          <ThemeToggle />
         </header>
 
         <main className="rp-form-scroll-area">
