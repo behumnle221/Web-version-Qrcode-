@@ -31,10 +31,8 @@ function getTokenRemainingMs(token) {
 
 // ── AuthProvider ──────────────────────────────────────────────────────────────
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
   const [token, setToken] = useState(() => {
     const stored = localStorage.getItem('payqr_token');
-    // Clear immediately if expired
     if (stored && isTokenExpired(stored)) {
       localStorage.removeItem('payqr_token');
       localStorage.removeItem('payqr_user');
@@ -42,7 +40,23 @@ export function AuthProvider({ children }) {
     }
     return stored;
   });
-  const [loading, setLoading] = useState(true);
+
+  const [user, setUser] = useState(() => {
+    const storedToken = localStorage.getItem('payqr_token');
+    if (storedToken && isTokenExpired(storedToken)) return null;
+    const stored = localStorage.getItem('payqr_user');
+    if (stored) {
+      try { return JSON.parse(stored); } catch { return null; }
+    }
+    return null;
+  });
+
+  const [loading, setLoading] = useState(() => {
+    const t = localStorage.getItem('payqr_token');
+    const u = localStorage.getItem('payqr_user');
+    if (t && !isTokenExpired(t) && !u) return true; 
+    return false;
+  });
   const logoutTimerRef = useRef(null);
 
   // Démarre un timer pour déconnecter automatiquement avant l'expiration du token
