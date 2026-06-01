@@ -325,8 +325,8 @@ const OPERATORS = [
   { value: 'MTN_Cameroon',   label: 'MTN',    color: '#FFCC00' },
 ];
 const QUICK_AMOUNTS = [500, 1000, 2000, 5000, 10000, 25000];
-const POLL_INTERVAL  = 3000;  // 3s entre chaque poll
-const MAX_POLLS      = 40;    // 2 minutes max
+const POLL_INTERVAL  = 1000;  // 1s entre chaque poll (détection rapide)
+const MAX_POLLS      = 120;   // 2 minutes max (120 polls de 1s)
 
 function fmt(v) {
   return new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 }).format(v ?? 0) + ' XAF';
@@ -374,20 +374,17 @@ function RechargeTracker({ transactionId, montant, operator, telephone, onReset 
     if (!transactionId) return;
     try {
       let data;
-      // Alterner : tous les 3 polls, appeler Aangaraa directement pour forcer la mise à jour
-      // Les autres polls lisent la BD locale (plus rapide)
-      if (pollsRef.current % 3 === 0) {
-        // Appel direct à Aangaraa via /status/{id} — met à jour la BD si SUCCESS
+      // Tous les 6 polls (6s), appeler Aangaraa directement pour rattraper un webhook manqué
+      // Les autres polls (chaque seconde) lisent la BD locale — ultra rapide
+      if (pollsRef.current % 6 === 0) {
         try {
           const res = await paymentService.getPaymentStatus(transactionId);
           data = res?.data || res;
         } catch {
-          // Si Aangaraa échoue, fallback sur la BD locale
           const res = await paymentService.getLocalStatus(transactionId);
           data = res?.data || res;
         }
       } else {
-        // Lecture rapide de la BD locale
         const res = await paymentService.getLocalStatus(transactionId);
         data = res?.data || res;
       }
@@ -408,7 +405,6 @@ function RechargeTracker({ transactionId, montant, operator, telephone, onReset 
     } catch {
       // silencieux
     }
-    setNextIn(POLL_INTERVAL / 1000);
   };
 
 
@@ -495,9 +491,9 @@ function RechargeTracker({ transactionId, montant, operator, telephone, onReset 
       {isPending && (
         <div className="crch-poll-info">
           <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <RefreshCw size={12} /> Vérification automatique
+            <RefreshCw size={12} /> Vérification en temps réel
           </span>
-          <span>Prochaine dans {nextIn}s · {pollCount} vérifications effectuées</span>
+          <span>{pollCount} vérifications · mise à jour automatique</span>
         </div>
       )}
 
