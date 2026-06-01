@@ -373,8 +373,25 @@ function RechargeTracker({ transactionId, montant, operator, telephone, onReset 
   const poll = async () => {
     if (!transactionId) return;
     try {
-      const res = await paymentService.getLocalStatus(transactionId);
-      const data = res?.data || res;
+      let data;
+      // Alterner : tous les 3 polls, appeler Aangaraa directement pour forcer la mise à jour
+      // Les autres polls lisent la BD locale (plus rapide)
+      if (pollsRef.current % 3 === 0) {
+        // Appel direct à Aangaraa via /status/{id} — met à jour la BD si SUCCESS
+        try {
+          const res = await paymentService.getPaymentStatus(transactionId);
+          data = res?.data || res;
+        } catch {
+          // Si Aangaraa échoue, fallback sur la BD locale
+          const res = await paymentService.getLocalStatus(transactionId);
+          data = res?.data || res;
+        }
+      } else {
+        // Lecture rapide de la BD locale
+        const res = await paymentService.getLocalStatus(transactionId);
+        data = res?.data || res;
+      }
+
       const status = data?.status || data?.statut || 'PENDING';
       const normalized = (status === 'SUCCESSFUL') ? 'SUCCESS' : status;
       setTxStatus(normalized);
@@ -393,6 +410,7 @@ function RechargeTracker({ transactionId, montant, operator, telephone, onReset 
     }
     setNextIn(POLL_INTERVAL / 1000);
   };
+
 
   useEffect(() => {
     poll(); // poll immédiat
