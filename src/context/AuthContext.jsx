@@ -1,8 +1,9 @@
 import { createContext, useState, useEffect, useCallback, useRef } from 'react';
 import { authService } from '../api/authService';
-import api from '../api/axios';
 
 export const AuthContext = createContext();
+
+const API_BASE_URL = 'https://backend-qr-code-u2kx.onrender.com';
 
 // ── JWT decoder (sans librairie externe) ─────────────────────────────────────
 function decodeJwt(token) {
@@ -18,16 +19,8 @@ function decodeJwt(token) {
 function isTokenExpired(token) {
   const payload = decodeJwt(token);
   if (!payload || !payload.exp) return true;
-  // Buffer de 30s : on considère le token expiré 30s AVANT sa vraie expiration
-  return payload.exp * 1000 < Date.now() + 30000;
-}
-
-// Retourne le nombre de ms restantes avant expiration (0 si déjà expiré)
-function getTokenRemainingMs(token) {
-  const payload = decodeJwt(token);
-  if (!payload || !payload.exp) return 0;
-  const remaining = payload.exp * 1000 - Date.now() - 30000; // 30s de marge
-  return Math.max(0, remaining);
+  // Token considéré expiré seulement s'il ne reste VRAIMENT plus rien (pas de buffer agressif)
+  return payload.exp * 1000 < Date.now();
 }
 
 // ── AuthProvider ──────────────────────────────────────────────────────────────
@@ -55,28 +48,42 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(() => {
     const t = localStorage.getItem('payqr_token');
     const u = localStorage.getItem('payqr_user');
-    if (t && !isTokenExpired(t) && !u) return true; 
+    if (t && !isTokenExpired(t) && !u) return true;
     return false;
   });
-  const logoutTimerRef = useRef(null);
-  const keepAliveRef   = useRef(null);
 
-  // Ping le serveur toutes les 4 minutes pour éviter :
-  // 1. La mise en veille du serveur Render (free tier)
-  // 2. La fermeture des connexions MySQL d'Aiven après 8 min d'inactivité
+  const keepAliveRef = useRef(null);
+
+  // ── Keep-Alive : utilise fetch NATIF (bypass les intercepteurs axios)
+  // Cela évite que le ping ne déclenche une déconnexion accidentelle en cas d'erreur 401
   const startKeepAlive = useCallback(() => {
     if (keepAliveRef.current) clearInterval(keepAliveRef.current);
     keepAliveRef.current = setInterval(async () => {
       const tkn = localStorage.getItem('payqr_token');
-      if (!tkn) { clearInterval(keepAliveRef.current); return; }
-      try {
-        await api.get('/api/auth/me');
-        console.debug('[KeepAlive] Ping serveur OK');
-      } catch (err) {
-        // Ignorer les erreurs réseau (serveur en cours de démarrage)
-        console.debug('[KeepAlive] Ping ignoré (serveur occupé)');
+      if (!tkn) {
+        clearInterval(keepAliveRef.current);
+        return;
       }
-    }, 4 * 60 * 1000); // toutes les 4 minutes
+      try {
+        // fetch natif : les intercepteurs axios ne s'appliquent PAS ici
+        const res = await fetch(`${API_BASE_URL}/api/auth/me`, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${tkn}`,
+            'Content-Type': 'application/json',
+          },
+          signal: AbortSignal.timeout(10000), // timeout 10s max
+        });
+        if (res.ok) {
+          console.debug('[KeepAlive] ✅ Ping serveur OK');
+        } else {
+          console.debug(`[KeepAlive] ⚠️ Ping réponse ${res.status} (ignoré)`);
+        }
+      } catch (err) {
+        // Serveur en veille ou réseau coupé — on ignore silencieusement
+        console.debug('[KeepAlive] ⏳ Ping ignoré (serveur indisponible)');
+      }
+    }, 3 * 60 * 1000); // toutes les 3 minutes
   }, []);
 
   const stopKeepAlive = useCallback(() => {
@@ -86,38 +93,21 @@ export function AuthProvider({ children }) {
     }
   }, []);
 
-  // Démarre un timer pour déconnecter automatiquement avant l'expiration du token
-  const scheduleAutoLogout = useCallback((tkn) => {
-    if (logoutTimerRef.current) clearTimeout(logoutTimerRef.current);
-    const remaining = getTokenRemainingMs(tkn);
-    if (remaining <= 0) {
-      logout();
-      return;
-    }
-    logoutTimerRef.current = setTimeout(() => {
-      console.warn('[Auth] Token expiré — déconnexion automatique');
-      logout();
-    }, remaining);
-  }, []); // eslint-disable-line
-
   useEffect(() => {
     if (token) {
       loadUser();
-      scheduleAutoLogout(token);
       startKeepAlive();
     } else {
       setLoading(false);
       stopKeepAlive();
     }
     return () => {
-      if (logoutTimerRef.current) clearTimeout(logoutTimerRef.current);
       stopKeepAlive();
     };
   }, [token]); // eslint-disable-line
 
   const loadUser = useCallback(async () => {
     try {
-      // 1. Restore from localStorage immediately (no API call needed)
       const storedUser = localStorage.getItem('payqr_user');
       if (storedUser) {
         const parsed = JSON.parse(storedUser);
@@ -126,7 +116,6 @@ export function AuthProvider({ children }) {
         return;
       }
 
-      // 2. Try to build user from JWT claims if localStorage is empty
       const currentToken = localStorage.getItem('payqr_token');
       if (currentToken) {
         const payload = decodeJwt(currentToken);
@@ -155,7 +144,6 @@ export function AuthProvider({ children }) {
     localStorage.setItem('payqr_user', JSON.stringify(newUser));
     setToken(newToken);
     setUser(newUser);
-    scheduleAutoLogout(newToken);
     return newUser;
   };
 
