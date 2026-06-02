@@ -10,7 +10,7 @@ import {
 import ThemeToggle from '../../components/common/ThemeToggle';
 
 /* ─── CSS ───────────────────────────────────────────────────────────────── */
-const CSS = `
+export const VENDEUR_CSS = `
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Sora:wght@700;800&display=swap');
 
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -331,7 +331,7 @@ export default function VendeurLayout() {
 
   useEffect(() => {
     const style = document.createElement('style');
-    style.textContent = CSS;
+    style.textContent = VENDEUR_CSS;
     document.head.appendChild(style);
     return () => document.head.removeChild(style);
   }, []);
@@ -376,7 +376,7 @@ export default function VendeurLayout() {
 
   return (
     <div className="vl-root">
-      <style>{CSS}</style>
+      <style>{VENDEUR_CSS}</style>
 
       {/* ── SIDEBAR (desktop) ── */}
       <aside className="vl-sidebar">

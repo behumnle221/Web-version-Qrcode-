@@ -7,8 +7,7 @@ import {
 } from 'lucide-react';
 import ThemeToggle from '../../components/common/ThemeToggle';
 
-// On réutilise une partie du CSS du vendeur
-import '../vendeurs/VendeurLayout';
+import { VENDEUR_CSS } from '../vendeurs/VendeurLayout';
 
 const NAV = [
   { to: '/caissier', label: 'Générer un QR Code', Icon: QrCode, end: true },
@@ -23,6 +22,13 @@ export default function CaissierLayout() {
   const navigate = useNavigate();
   const location = useLocation();
   const [drawerOpen, setDrawerOpen] = useState(false);
+
+  useEffect(() => {
+    const style = document.createElement('style');
+    style.textContent = VENDEUR_CSS;
+    document.head.appendChild(style);
+    return () => document.head.removeChild(style);
+  }, []);
 
   const handleLogout = () => {
     logout();
@@ -54,6 +60,7 @@ export default function CaissierLayout() {
 
   return (
     <div className="vl-root">
+      <style>{VENDEUR_CSS}</style>
       <aside className="vl-sidebar">
         <div className="vl-sidebar-inner">
           <div className="vl-logo">
