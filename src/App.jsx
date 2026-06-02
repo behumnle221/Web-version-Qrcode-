@@ -34,6 +34,8 @@ import VendeurQrManager from './modules/vendeurs/VendeurQrManager';
 import VendeurRetraits from './modules/vendeurs/VendeurRetraits';
 import VendeurTransactions from './modules/vendeurs/VendeurTransactions';
 import VendeurParametres from './modules/vendeurs/VendeurParametres';
+import VendeurCaisses from './modules/vendeurs/VendeurCaisses';
+import CaissierLayout from './modules/caissier/CaissierLayout';
 
 // Admin
 import AdminDashboard from './modules/admin/AdminDashboard';
@@ -60,6 +62,7 @@ function GuestRoute({ children }) {
     if (user.role === 'VENDEUR') return <Navigate to="/vendeurs" replace />;
     if (user.role === 'CLIENT') return <Navigate to="/clients" replace />;
     if (user.role === 'ADMIN') return <Navigate to="/admin" replace />;
+    if (user.role === 'CAISSIER') return <Navigate to="/caissier" replace />;
     return <Navigate to="/dashboard" replace />;
   }
   return children;
@@ -107,6 +110,7 @@ export default function App() {
           <Route path="qr"       element={<VendeurQrManager />} />
           <Route path="retraits" element={<VendeurRetraits />} />
           <Route path="transactions" element={<VendeurTransactions />} />
+          <Route path="caisses"  element={<VendeurCaisses />} />
           <Route path="parametres"   element={<VendeurParametres />} />
         </Route>
 
@@ -130,6 +134,14 @@ export default function App() {
           <Route path="/payments/:id/status" element={<PaymentStatusPage />} />
           <Route path="/test-api"  element={<TestApiPage />} />
           <Route path="/api-docs"  element={<ApiDocsPage />} />
+        </Route>
+
+        {/* ── CAISSIER (layout simplifié) ── */}
+        <Route
+          path="/caissier"
+          element={<ProtectedRoute><CaissierLayout /></ProtectedRoute>}
+        >
+          <Route index element={<VendeurQrManager />} />
         </Route>
 
         {/* ── Fallback ── */}

@@ -21,6 +21,7 @@ const navByRole = {
     { path: '/dashboard', label: 'Dashboard', icon: 'LayoutDashboard' },
     { path: '/vendeurs', label: 'Mon Commerce', icon: 'Store' },
     { path: '/vendeurs/generate-qr', label: 'Générer QR', icon: 'QrCode' },
+    { path: '/vendeurs/caisses', label: 'Mes Caisses', icon: 'Users' },
     { path: '/payments', label: 'Paiements', icon: 'CreditCard' },
   ],
   ADMIN: [

@@ -308,6 +308,7 @@ const NAV = [
   { to: '/vendeurs', label: 'Tableau de bord', Icon: LayoutDashboard, end: true },
   { to: '/vendeurs/transactions', label: 'Ventes', Icon: Receipt },
   { to: '/vendeurs/retraits', label: 'Retraits', Icon: ArrowDownToLine },
+  { to: '/vendeurs/caisses', label: 'Caisses', Icon: Store },
   { to: '/vendeurs/parametres', label: 'Paramètres', Icon: Settings },
 ];
 
@@ -316,6 +317,7 @@ const PAGE_TITLES = {
   '/vendeurs/qr': 'Générer un QR Code',
   '/vendeurs/transactions': 'Historique des ventes',
   '/vendeurs/retraits': 'Retraits',
+  '/vendeurs/caisses': 'Gestion des Caisses',
   '/vendeurs/parametres': 'Paramètres',
 };
 

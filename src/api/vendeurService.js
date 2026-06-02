@@ -101,6 +101,22 @@ export const vendeurService = {
     return unwrap(response);
   },
 
+  // === NOUVEAU: GESTION DES CAISSES ===
+  async getCaisses() {
+    const response = await api.get('/api/vendeur/caissiers');
+    return response.data;
+  },
+
+  async createCaisse(data) {
+    const response = await api.post('/api/vendeur/caissiers', data);
+    return response.data;
+  },
+
+  async toggleCaisse(id) {
+    const response = await api.put(`/api/vendeur/caissiers/${id}/toggle`);
+    return response.data;
+  },
+
   // Compatibility aliases
   async getBalance() { return (await this.getSolde()).solde; },
   async requestWithdrawal(data) { return this.demanderRetrait(data); },
