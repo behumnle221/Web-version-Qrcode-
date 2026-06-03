@@ -102,12 +102,13 @@ export const vendeurService = {
   },
 
   // === GESTION DES CAISSES ===
-  async getCaisses() {
-    const response = await api.get('/api/vendeur/caissiers');
+  async getCaisses(periode = 'TOUT') {
+    const response = await api.get('/api/vendeur/caissiers', { params: { periode } });
     const d = response.data;
     // unwrap: { success, data: [...] }
     return Array.isArray(d) ? d : (d?.data ?? []);
   },
+
 
   async createCaisse(data) {
     const response = await api.post('/api/vendeur/caissiers', data);
