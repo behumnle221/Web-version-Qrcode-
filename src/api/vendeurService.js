@@ -101,10 +101,12 @@ export const vendeurService = {
     return unwrap(response);
   },
 
-  // === NOUVEAU: GESTION DES CAISSES ===
+  // === GESTION DES CAISSES ===
   async getCaisses() {
     const response = await api.get('/api/vendeur/caissiers');
-    return response.data;
+    const d = response.data;
+    // unwrap: { success, data: [...] }
+    return Array.isArray(d) ? d : (d?.data ?? []);
   },
 
   async createCaisse(data) {
@@ -117,8 +119,21 @@ export const vendeurService = {
     return response.data;
   },
 
+  async deleteCaisse(id) {
+    const response = await api.delete(`/api/vendeur/caissiers/${id}`);
+    return response.data;
+  },
+
+  // === CAISSIER: ses propres QR codes ===
+  async getMesQrCodes() {
+    const response = await api.get('/api/qr/my-qrs');
+    const d = response.data;
+    return Array.isArray(d) ? d : (d?.data ?? []);
+  },
+
   // Compatibility aliases
   async getBalance() { return (await this.getSolde()).solde; },
   async requestWithdrawal(data) { return this.demanderRetrait(data); },
   async getWithdrawals(page, size) { return this.getRetraits({ page, size }); },
 };
+

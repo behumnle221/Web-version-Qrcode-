@@ -2,19 +2,18 @@ import { useState, useEffect } from 'react';
 import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import toast from 'react-hot-toast';
-import {
-  QrCode, LogOut, Store, Menu, X
-} from 'lucide-react';
+import { QrCode, LogOut, Store, Menu, X, LayoutDashboard } from 'lucide-react';
 import ThemeToggle from '../../components/common/ThemeToggle';
-
 import { VENDEUR_CSS } from '../vendeurs/VendeurLayout';
 
 const NAV = [
-  { to: '/caissier', label: 'Générer un QR Code', Icon: QrCode, end: true },
+  { to: '/caissier',         label: 'Tableau de bord', Icon: LayoutDashboard, end: true },
+  { to: '/caissier/qr',      label: 'Générer un QR',   Icon: QrCode },
 ];
 
 const PAGE_TITLES = {
-  '/caissier': 'Générer un QR Code',
+  '/caissier':     'Tableau de bord',
+  '/caissier/qr':  'Générer un QR Code',
 };
 
 export default function CaissierLayout() {
@@ -37,12 +36,13 @@ export default function CaissierLayout() {
   };
 
   const pageTitle = PAGE_TITLES[location.pathname] ?? 'Espace Caisse';
-  const initials = (user?.nom || user?.email || 'C').charAt(0).toUpperCase();
-  const nomCommerce = user?.nom || 'Caisse';
+  const initials  = (user?.nom || user?.email || 'C').charAt(0).toUpperCase();
+  const nomCaisse = user?.nom || 'Caisse';
+  const emailCaisse = user?.email || '';
 
   const NavItems = ({ onClose }) => (
     <>
-      <div className="vl-nav-label">Caisse</div>
+      <div className="vl-nav-label">Navigation</div>
       {NAV.map(({ to, label, Icon, end }) => (
         <NavLink
           key={to}
@@ -58,36 +58,41 @@ export default function CaissierLayout() {
     </>
   );
 
+  const SidebarFooter = () => (
+    <div className="vl-sidebar-footer">
+      <div className="vl-user-card">
+        <div className="vl-user-avatar">{initials}</div>
+        <div style={{ minWidth: 0 }}>
+          <div className="vl-user-name" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {nomCaisse}
+          </div>
+          <div className="vl-user-role">{emailCaisse}</div>
+        </div>
+      </div>
+      <button className="vl-nav-item" onClick={handleLogout} style={{ color: '#f87171', width: '100%' }}>
+        <LogOut size={16} />
+        Se déconnecter
+      </button>
+    </div>
+  );
+
   return (
     <div className="vl-root">
       <style>{VENDEUR_CSS}</style>
+
+      {/* ── SIDEBAR desktop ── */}
       <aside className="vl-sidebar">
         <div className="vl-sidebar-inner">
           <div className="vl-logo">
-            <div className="vl-logo-icon">
-              <Store size={20} color="white" />
-            </div>
+            <div className="vl-logo-icon"><Store size={20} color="white" /></div>
             <span className="vl-logo-text">Pay<span>Qr</span></span>
           </div>
-
           <NavItems onClose={() => {}} />
-
-          <div className="vl-sidebar-footer">
-            <div className="vl-user-card">
-              <div className="vl-user-avatar">{initials}</div>
-              <div>
-                <div className="vl-user-name">{nomCommerce}</div>
-                <div className="vl-user-role">Caissier</div>
-              </div>
-            </div>
-            <button className="vl-nav-item" onClick={handleLogout} style={{ color: '#f87171', width: '100%' }}>
-              <LogOut size={16} />
-              Se déconnecter
-            </button>
-          </div>
+          <SidebarFooter />
         </div>
       </aside>
 
+      {/* ── MOBILE DRAWER ── */}
       {drawerOpen && (
         <>
           <div className="vl-drawer-overlay" onClick={() => setDrawerOpen(false)} />
@@ -96,29 +101,16 @@ export default function CaissierLayout() {
               <X size={16} />
             </button>
             <div className="vl-logo" style={{ paddingTop: 0, marginTop: '2rem' }}>
-              <div className="vl-logo-icon">
-                <Store size={20} color="white" />
-              </div>
+              <div className="vl-logo-icon"><Store size={20} color="white" /></div>
               <span className="vl-logo-text">Pay<span>Qr</span></span>
             </div>
             <NavItems onClose={() => setDrawerOpen(false)} />
-            <div className="vl-sidebar-footer">
-              <div className="vl-user-card">
-                <div className="vl-user-avatar">{initials}</div>
-                <div>
-                  <div className="vl-user-name">{nomCommerce}</div>
-                  <div className="vl-user-role">Caissier</div>
-                </div>
-              </div>
-              <button className="vl-nav-item" onClick={handleLogout} style={{ color: '#f87171', width: '100%' }}>
-                <LogOut size={16} />
-                Se déconnecter
-              </button>
-            </div>
+            <SidebarFooter />
           </div>
         </>
       )}
 
+      {/* ── MAIN ── */}
       <main className="vl-main">
         <header className="vl-topbar">
           <div className="vl-topbar-left">
@@ -131,12 +123,12 @@ export default function CaissierLayout() {
             <ThemeToggle />
           </div>
         </header>
-
         <div className="vl-content">
           <Outlet />
         </div>
       </main>
 
+      {/* ── BOTTOM NAV mobile ── */}
       <nav className="vl-bottom-nav">
         {NAV.map(({ to, label, Icon, end }) => (
           <NavLink

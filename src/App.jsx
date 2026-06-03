@@ -36,6 +36,7 @@ import VendeurTransactions from './modules/vendeurs/VendeurTransactions';
 import VendeurParametres from './modules/vendeurs/VendeurParametres';
 import VendeurCaisses from './modules/vendeurs/VendeurCaisses';
 import CaissierLayout from './modules/caissier/CaissierLayout';
+import CaissierDashboard from './modules/caissier/CaissierDashboard';
 
 // Admin
 import AdminDashboard from './modules/admin/AdminDashboard';
@@ -136,12 +137,13 @@ export default function App() {
           <Route path="/api-docs"  element={<ApiDocsPage />} />
         </Route>
 
-        {/* ── CAISSIER (layout simplifié) ── */}
+        {/* ── CAISSIER ── */}
         <Route
           path="/caissier"
           element={<ProtectedRoute><CaissierLayout /></ProtectedRoute>}
         >
-          <Route index element={<VendeurQrManager />} />
+          <Route index      element={<CaissierDashboard />} />
+          <Route path="qr" element={<VendeurQrManager />} />
         </Route>
 
         {/* ── Fallback ── */}
